@@ -24,8 +24,8 @@ class GoogleKeywordScreenshooter:
 
             self.browser.execute_script(
                 """
-                  const shitty = arguments[0];
-                  shitty.parentElement.removeChild(shitty)
+                    const shitty = arguments[0];
+                    shitty.parentElement.removeChild(shitty)
                 """,
                 shitty_element,
             )
