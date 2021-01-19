@@ -11,57 +11,74 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# login instagram
 INSTAGRAM_ID = os.getenv("INSTAGRAM_ID")
 INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD")
+used_photographer_name = []
+max_hashtags = 15
 
-browser = webdriver.Chrome(ChromeDriverManager().install())
-browser.get("https://www.instagram.com/accounts/login/")
+# login instagram
+class Instagraming:
+    def __init__(self, url):
+        self.browser = webdriver.Chrome(ChromeDriverManager().install())
+        self.url = url
 
-WebDriverWait(browser, 3).until(
-    EC.presence_of_element_located((By.CLASS_NAME, "_2hvTZ"))
-)
+    def wait_for(self, locator):
+        return WebDriverWait(self.browser, 10).until(
+            EC.presence_of_element_located(locator)
+        )
 
-insta_id = browser.find_element_by_name("username")
-insta_password = browser.find_element_by_name("password")
+    def login(self):
+        self.browser.get(f"{self.url}/accounts/login/")
+        self.wait_for((By.CLASS_NAME, "_2hvTZ"))
 
-insta_id.send_keys(INSTAGRAM_ID)
-insta_password.send_keys(INSTAGRAM_PASSWORD)
-insta_password.send_keys(Keys.ENTER)
+        insta_id = self.browser.find_element_by_name("username")
+        insta_password = self.browser.find_element_by_name("password")
 
-WebDriverWait(browser, 3).until(
-    EC.presence_of_element_located((By.CLASS_NAME, "qNELH"))
-)
+        insta_id.send_keys(INSTAGRAM_ID)
+        insta_password.send_keys(INSTAGRAM_PASSWORD)
+        insta_password.send_keys(Keys.ENTER)
 
-# get photos
+        self.wait_for((By.CLASS_NAME, "qNELH"))
+        self.get_photos()
 
-account_name = "jinifoto"
+    def extract_data(self):
+        photographer_name = self.browser.find_element_by_class_name("sqdOP")
+        photographer_name = photographer_name.text
 
-browser.get(f"https://www.instagram.com/{account_name}")
+        if photographer_name:
+            if photographer_name not in used_photographer_name:
+                used_photographer_name.append(photographer_name)
 
-article = WebDriverWait(browser, 10).until(
-    EC.presence_of_element_located((By.CLASS_NAME, "ySN3v"))
-)
-hashtags = article.find_elements_by_tag_name("a")
+    def get_photos(self):
+        # get photos
+
+        account_name = "jinifoto"
+        self.browser.get(f"{self.url}/{account_name}")
+
+        article = self.wait_for((By.CLASS_NAME, "ySN3v"))
+        photos = article.find_elements_by_tag_name("a")
+
+        for photo_url in photos:
+            url = photo_url.get_attribute("href")
+            self.browser.execute_script(
+                """
+                const url = arguments[0];
+                window.open(`${url}`,"_blank");
+                """,
+                url,
+            )
+
+        for window in self.browser.window_handles:
+            self.browser.switch_to.window(window)
+            self.extract_data()
+
+        if len(used_photographer_name) < max_hashtags:
+            for window in self.browser.window_handles[0:1]:
+                self.browser.switch_to.window(window)
+                self.browser.close()
+            self.browser.switch_to.window(self.browser.window_handles[0])
+            self.get_photos(self.browser.current_url)
 
 
-for hashtag in hashtags:
-    url = hashtag.get_attribute("href")
-    # ActionChains(browser).key_down(Keys.COMMAND).key_down("t")
-    browser.execute_script(
-        """
-        const url = arguments[0];
-        window.open(`${url}`,"_blank");
-        """,
-        url,
-    )
-
-
-for window in browser.window_handles:
-    browser.switch_to.window(window)
-    hashtag_name = browser.find_element_by_class_name("sqdOP")
-    print(hashtag_name.text)
-
-
-time.sleep(3)
-browser.quit()
+tester = Instagraming("https://www.instagram.com")
+tester.login()
