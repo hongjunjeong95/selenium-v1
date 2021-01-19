@@ -1,5 +1,6 @@
 import time
 import os
+import csv
 
 from selenium import webdriver
 from selenium.webdriver import ActionChains
@@ -62,6 +63,16 @@ def get_related(target_url):
         get_related(browser.current_url)
 
 
+def save_file(initial_hashtag):
+    file = open(f"{initial_hashtag}-report.csv", "w")
+    writer = csv.writer(file)
+    writer.writerow(["Hashtag", "Post Count"])
+
+    for hashtag in counted_hashtags:
+        writer.writerow(hashtag)
+    browser.quit()
+
+
 def login():
     # login instagram
     INSTAGRAM_ID = os.getenv("INSTAGRAM_ID")
@@ -84,9 +95,11 @@ def login():
     WebDriverWait(browser, 3).until(
         EC.presence_of_element_located((By.CLASS_NAME, "qNELH"))
     )
+
     initial_hashtag = "dog"
     get_related(f"https://www.instagram.com/explore/tags/{initial_hashtag}")
-    print(counted_hashtags)
+
+    save_file(initial_hashtag)
 
 
 login()
